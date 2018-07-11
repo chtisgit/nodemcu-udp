@@ -107,8 +107,8 @@ static uint8_t apply_parameters(uint8_t *data) {
     uint8_t tmp = 0;
     uint8_t access = ALLOW_ACCESS[i];
     for (j = 0; j < 8; j++) {
+      tmp >>= 1;
       if ((access & 1) != 0) {
-        tmp >>= 1;
         if (digitalRead(k)) {
           tmp |= 0x80;
         }
@@ -195,7 +195,7 @@ void loop()
 
 respond:
     udp.beginPacket(udp.remoteIP(), udp.remotePort());
-    udp.write(packet, 8);
+    udp.write(packet, 16);
     udp.endPacket();
 
     Serial.println("Done.");

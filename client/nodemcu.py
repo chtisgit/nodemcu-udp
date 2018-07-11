@@ -76,12 +76,16 @@ class NodeMcu:
 		crc = self.crc(package)
 		package += bytes([crc & 0xFF, (crc >> 8) & 0xFF])
 
+		err = -1
 		for retries in range(5):
 			self.sock.sendto(package, 0, self.Target)
 			try:
-				data, addr = self.sock.recvfrom(32)
-				# everything fine, return error code
-				return data[0]
+				data, addr = self.sock.recvfrom(16)
+				err = data[0]
+				if err == 0 or err == 2:
+					for i in range(8):
+						self.state[i] = data[i+8]
+					return err
 			except socket.timeout:
 				# receive timed out, retry send and receiv
 				pass
@@ -89,8 +93,8 @@ class NodeMcu:
 				# some other error
 				return -1
 		# error after 5 retries
-		return -1
-	
+		return err
+
 	def getError(self, code):
 		if code == -1:
 			return "Internal error. Probably no connection to NodeMCU."
