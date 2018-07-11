@@ -79,7 +79,7 @@ class NodeMcu:
 				data, addr = self.sock.recvfrom(32)
 				# everything fine, return error code
 				return data[0]
-			except (socket.timeout, e):
+			except socket.timeout:
 				# receive timed out, retry send and receiv
 				pass
 			else:
@@ -87,4 +87,14 @@ class NodeMcu:
 				return -1
 		# error after 5 retries
 		return -1
+	
+	def getError(self, code):
+		if code == -1:
+			return "Internal error. Probably no connection to NodeMCU."
+		elif code == 0:
+			return "No error"
+		elif code == 1:
+			return "Wrong CRC"
+		elif code == 2:
+			return "Invalid setting (output = High for input port)"
 
