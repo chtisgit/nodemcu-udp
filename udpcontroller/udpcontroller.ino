@@ -150,7 +150,7 @@ void loop()
   static const char MAGIC[] = "LBD!";
 #define MAGIC_LEN 4
 
-  uint8_t packet[MAX_PACKET_SIZE];
+  uint8_t packet[PACKET_SIZE];
   int packsz = udp.parsePacket();
   uint8_t error = 0;
 
