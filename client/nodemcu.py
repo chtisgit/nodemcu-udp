@@ -1,6 +1,8 @@
 import socket
 
-D = [16, 5, 4, 0, 2, 14, 12, 13, 15, 3, 1]
+D = [16, 5, 4, 0, 2, 14, 12, 13, 15]
+RX = 3
+TX = 1
 
 class NodeMcu:
 	def __init__(self, target):
@@ -70,6 +72,7 @@ class NodeMcu:
 		package = self.Magic
 		package += bytes([self.packId & 0xFF, (self.packId >> 8) & 0xFF, (self.packId >> 16) & 0xFF, (self.packId >> 24) & 0xFF])
 		package += bytes(self.state)
+		#print([hex(x) for x in self.state])
 		crc = self.crc(package)
 		package += bytes([crc & 0xFF, (crc >> 8) & 0xFF])
 
