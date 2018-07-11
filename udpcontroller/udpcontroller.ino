@@ -9,10 +9,6 @@
 
 */
 
-#include <uCRC16Lib.h>
-#include <SPI.h>
-#include <ESP8266WiFi.h>
-#include <WiFiUdp.h>
 
 #define DEBUG
 
@@ -22,28 +18,40 @@
 #define FLUSH
 #endif
 
+#include <uCRC16Lib.h>
+#include <SPI.h>
+#include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
+
+#include "credentials.c"
 
 // The baudrate used for serial output
 #define BAUDRATE 115200
+
+// define AP_MODE if you want the ESP to start
+// as access point. Otherwise it will try
+// to connect to a Wifi using the credentials
+// from credentials.c
+//#define AP_MODE
 
 #define AP_CHANNEL 1
 // hidden SSID does appear to not work :(
 #define AP_HIDDEN  false
 
-#define UDP_PORT 10000
-
-const char AP_SSID[] = "lbd";
-const char AP_PASS[] = "LearningByDoing";
-
-
+// these addresses are used if AP_MODE is defined
 IPAddress local_IP(192, 168, 1, 1);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
+
+#define UDP_PORT 10000
+
+
 WiFiUDP udp;
 
 #define STATE_SIZE 16
 uint8_t state[STATE_SIZE];
 
+// bitmap of pins that can be accessed
 uint8_t ALLOW_ACCESS[8] = { 0x3F, 0xF0, 0x01 };
 
 static uint8_t apply_parameters(uint8_t *data) {
@@ -150,11 +158,16 @@ void loop()
   static const char MAGIC[] = "LBD!";
 #define MAGIC_LEN 4
 
+  int packsz;
   uint8_t packet[PACKET_SIZE];
-  int packsz = udp.parsePacket();
   uint8_t error = 0;
 
+  if(!WiFi.isConnected()){
+    delay(20);
+    return;
+  }
 
+  packsz = udp.parsePacket();
   if (packsz == PACKET_SIZE) {
     int i = udp.read(packet, PACKET_SIZE);
     if (i != PACKET_SIZE) {
@@ -193,37 +206,55 @@ respond:
   }
 }
 
+int setupWifi()
+{
+#ifdef AP_MODE
+  int success = WiFi.softAPConfig(local_IP, gateway, subnet);
+  if (!success) {
+    goto fail;
+  }
+
+  success = WiFi.softAP(MYSSID, MYPASS, AP_CHANNEL, AP_HIDDEN);
+  if (!success) {
+    goto fail;
+  }
+
+  Serial.printf("SSID: %s\r\nPASS: %s\r\nIP:   ", MYSSID, MYPASS);
+  Serial.println(WiFi.softAPIP());
+#else
+  WiFi.begin(MYSSID, MYPASS);
+  int status = WiFi.waitForConnectResult();
+  if (status != WL_CONNECTED) {
+    Serial.print("Could not connect to station ");
+    Serial.println(MYSSID);
+    Serial.println("Reset to try again.");
+    goto fail;
+  } else {
+    Serial.println("Connected to ");
+    Serial.println(MYSSID);
+    Serial.print("IP:   ");
+    Serial.println(WiFi.localIP());
+  }
+#endif
+
+  return 1; // ok
+fail:
+  return 0; // failed
+}
+
 void setup()
 {
   Serial.begin(BAUDRATE);
   Serial.println();
   Serial.println("Starting...");
 
-  int success = WiFi.softAPConfig(local_IP, gateway, subnet);
-  if (!success) {
-    goto fail;
+  if(setupWifi()){
+    memset(state, 0, STATE_SIZE);
+    udp.begin(UDP_PORT);
+  
+    Serial.println("Ready.");
+    Serial.flush();
   }
-
-  success = WiFi.softAP(AP_SSID, AP_PASS, AP_CHANNEL, AP_HIDDEN);
-  if (!success) {
-    goto fail;
-  }
-
-
-  Serial.printf("SSID: %s\r\nPASS: %s\r\nIP:   ", AP_SSID, AP_PASS);
-  Serial.println(WiFi.softAPIP());
-
-  memset(state, 0, STATE_SIZE);
-  udp.begin(UDP_PORT);
-
-  Serial.println("Ready.");
-  Serial.flush();
-  return;
-
-fail:
-  Serial.println("Failed to set up AP...");
-  delay(5000);
-
 }
 
 
