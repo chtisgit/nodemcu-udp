@@ -4,7 +4,7 @@
 # NodeMCU one after another one at a time and
 # show status output on the screen
 
-from nodemcu import NodeMcu, D, TX, RX
+from nodemcu import NodeMcu, NodeMcuError, D, TX, RX
 from time import sleep
 from sys import exit
 from common import getIPPort

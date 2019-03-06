@@ -3,7 +3,7 @@
 # In this example the LED on the NodeMCU board can be toggled
 # by a button connecting D1 to GND.
 
-from nodemcu import NodeMcu, D
+from nodemcu import NodeMcu, NodeMcuError, D
 from time import sleep
 from sys import exit
 from common import getIPPort
