@@ -23,22 +23,17 @@ def showActivePin(pin):
 try:
 	mcu = NodeMcu(IPPORT)
 	for pin in PINS:
-		err = mcu.setOutput(pin)
-		if err != 0:
-			print("error: ", mcu.getError(err))
-			exit(1)
+		mcu.setOutput(pin)
 
 	while True:
 		for i in range(len(PINS)):
-			err = mcu.write(PINS[i], True)
-			if err != 0:
-				print("error: ", mcu.getError(err))
+			mcu.write(PINS[i], True)
 			
 			showActivePin(i)
 			sleep(SLEEP)
-			err = mcu.write(PINS[i], False)
-			if err != 0:
-				print("error: ", mcu.getError(err))
+			mcu.write(PINS[i], False)
+except NodeMcuError as e:
+	print("error:",e)
 except KeyboardInterrupt:
 	print("\n\nExiting.")
 

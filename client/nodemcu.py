@@ -4,6 +4,21 @@ D = [16, 5, 4, 0, 2, 14, 12, 13, 15]
 RX = 3
 TX = 1
 
+class NodeMcuError(Exception):
+	def message(errno):
+		if errno == -1:
+			return "Internal error. Probably no connection to NodeMCU."
+		elif errno == 0:
+			return "No error"
+		elif errno == 1:
+			return "Wrong CRC"
+		elif errno == 2:
+			return "Invalid setting (output = High for input port)"
+
+	def __init__(self, errno):
+		super().__init__(NodeMcuError.message(errno))
+		self.errno = errno
+
 class NodeMcu:
 	def __init__(self, target):
 		self.state = [0]*32
@@ -12,6 +27,9 @@ class NodeMcu:
 		self.packId = 0
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sock.settimeout(1)
+		err = self.update()
+		if err != 0:
+			raise NodeMcuError(err)
 
 	def crc(self, data):
 		crc = 0xFFFF;
@@ -37,12 +55,16 @@ class NodeMcu:
 	def setOutput(self, n):
 		i = int(16 + n / 8)
 		self.state[i] |= (1 << (n % 8))
-		return self.update()
+		err = self.update()
+		if err != 0:
+			raise NodeMcuError(err)
 
 	def setInput(self, n):
 		i = int(16 + n / 8)
 		self.state[i] &= ~(1 << (n % 8))
-		return self.update()
+		err = self.update()
+		if err != 0:
+			raise NodeMcuError(err)
 
 	def write(self, n, val):
 		# set port to high if val is true
@@ -50,13 +72,15 @@ class NodeMcu:
 		self.state[i] &= ~(1 << (n % 8))
 		if val:
 			self.state[i] |= (1 << (n % 8))
-		return self.update()
+		err = self.update()
+		if err != 0:
+			raise NodeMcuError(err)
 
 	def read(self, n):
 		err = self.update()
-		if (self.state[int(n/8)] >> (n % 8)) & 1:
-			return True, err
-		return False, err
+		if err != 0:
+			raise NodeMcuError(err)
+		return ((self.state[int(n/8)] >> (n % 8)) & 1) != 0
 
 	def connected(self):
 		package = self.Magic+bytes([0]*(42-len(self.Magic)))
@@ -86,22 +110,10 @@ class NodeMcu:
 					for i in range(8):
 						self.state[i] = data[i+8]
 					return err
+				# if err == 1 <=> wrong crc -> try again
 			except socket.timeout:
-				# receive timed out, retry send and receiv
+				# receive timed out, retry send and receive
 				pass
-			else:
-				# some other error
-				return -1
 		# error after 5 retries
 		return err
-
-	def getError(self, code):
-		if code == -1:
-			return "Internal error. Probably no connection to NodeMCU."
-		elif code == 0:
-			return "No error"
-		elif code == 1:
-			return "Wrong CRC"
-		elif code == 2:
-			return "Invalid setting (output = High for input port)"
 
