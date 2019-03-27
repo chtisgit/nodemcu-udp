@@ -10,13 +10,12 @@ from sys import exit
 from common import getIPPort
 from time import sleep
 
-# Wiring
-DS = D[0]
-OE = D[1]
-ST_CP = D[2]
-SH_CP = D[3]
-MR = D[4]
-Q7 = D[5]
+# Wiring       Names from the TI data sheet
+DS = D[0]    # SER
+OE = D[1]    # OE
+ST_CP = D[2] # RCLK
+SH_CP = D[3] # SRCLK
+MR = D[4]    # SRCLR
 
 code = [0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xff,0x00]
 
@@ -25,8 +24,6 @@ try:
 
 	for o in [DS, OE, ST_CP, SH_CP, MR]:
 		mcu.setOutput(o)
-
-	mcu.setInput(Q7)
 
 	mcu.write(OE, False)
 	mcu.write(SH_CP, False)
